@@ -37,6 +37,7 @@ class os_t:
 		self.console_str = ""
         #task agora passa a ser uma lista
 		self.tasks = []
+		self.current_task_index = 0
 		self.next_task_id = 0
 
 		self.current_task = None
@@ -151,25 +152,34 @@ class os_t:
 	# returns the ids of the first and last pages
 	# -1, -1 if cannot find
 
-	def allocate_contiguos_physical_memory_to_task (self, words, task, page_size):
+	def allocate_contiguos_physical_memory_to_task (self, words, task):
         # TODO
 		#Criar uma lista de blocos que vai suportar n tarefas + a idle_task
 		#Percorrer o bloco pra achar memoria livre
-		blocos = math.ceil(words/self.page_size)
+		self.printk("words "+str(words))
+		blocos = 1 if math.ceil(words/self.page_size) == 0 else math.ceil(words/self.page_size)
 		paddr_offset = None
 		paddr_max = None
 		cont = 0
+		self.printk("pages "+str(len(self.fake_page)))
+		self.printk("blocos "+str(blocos))
 		for i in range(0,len(self.fake_page)):
+			self.printk("i "+str(i))
 			if self.fake_page[i] is None:
 				if paddr_offset is None:
+					
 					paddr_offset = i*self.page_size
-				cont= cont + 1
+					self.printk("po "+str(paddr_offset))
+					cont= cont + 1
 				if cont == blocos:
 					paddr_max = ((i+1)*self.page_size)-1
+					self.printk("pm "+str(paddr_max))
 					break
 			else:
 				cont = 0
-                paddr_offset = None
+				paddr_offset = None
+ 				self.printk("pon "+str(paddr_offset))
+		self.printk("po/pm "+str(paddr_offset)+str(paddr_max))
 
 		if (paddr_offset is None or paddr_max is None):
 			self.printk("o processo eh maior que a memoria disponivel "+task.bin_name)
@@ -177,29 +187,7 @@ class os_t:
 		self.printk("paddr_offset = "+str(paddr_offset)+ " paddr_max = "+str(paddr_max))
 		return paddr_offset, paddr_max
             
-                    
-                    
-        
-		
-		
-		# Localizar um bloco de memoria livre para armazenar o processo
-          
-		#if words > self.memory.get_size():
-			#self.printk("o processo eh maior que a memoria disponivel "+task.bin_name)
-			#return -1, -1
-           
-		#if self.idle_task is None:
-			#return 0, words-1
-		#else:
-			#return self.idle_task.paddr_max+1, self.idle_task.paddr_max+words
-                
-
-		# Retornar tupla <primeiro endereco livre>, <ultimo endereco livre>
-
-		# if we get here, there is no free space to put the task
- 
-		##self.printk("could not allocate memory to task "+task.bin_name)
-		#return -1, -1
+              
 
 	def printk(self, msg):
 		self.terminal.kernel_print("kernel: " + msg + "\n")
@@ -230,18 +218,14 @@ class os_t:
 		elif cmd == "tasks":
 			self.task_table_print()
 		elif cmd[:3] == "run":
-			if (self.the_task is not None):
-				self.terminal.console_print("error: binary " + self.the_task.bin_name + " is already running\n")
+			bin_name = cmd[4:]
+			self.terminal.console_print("\rrun binary " + bin_name + "\n")
+			task = self.load_task(bin_name)
+			if task is not None:
+				self.tasks.append(task)
+				
 			else:
-				bin_name = cmd[4:]
-				self.terminal.console_print("\rrun binary " + bin_name + "\n")
-				task = self.load_task(bin_name)
-				if task is not None:
-					self.the_task = task;
-					self.un_sched(self.idle_task)
-					self.sched(self.the_task)
-				else:
-					self.terminal.console_print("error: binary " + bin_name + " not found\n")
+				self.terminal.console_print("error: binary " + bin_name + " not found\n")
 		else:
 			self.terminal.console_print("\rinvalid cmd " + cmd + "\n")
 
@@ -292,9 +276,16 @@ class os_t:
 		self.un_sched(task)
 		self.terminate_unsched_task(task)
 		self.sched(self.idle_task)
+		
+		
+	def escalonador (self):
+		
+		
+		
 
 	def interrupt_timer (self):
-		self.printk("timer interrupt NOT IMPLEMENTED")
+		escalonador()
+		#self.printk("timer interrupt NOT IMPLEMENTED")
 
 	def handle_interrupt (self, interrupt):
 		if interrupt == pycfg.INTERRUPT_MEMORY_PROTECTION_FAULT:
