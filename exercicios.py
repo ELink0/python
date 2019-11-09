@@ -51,5 +51,15 @@ def Media_Notas():
 
     print("Média {}".format(media))
 
+def Maior_Numero():
+    # Faça um Programa que peça dois números e imprima o maior deles.
+    num_um = float(input("Número 1: "))
+    num_dois = float(input("Número 2: "))
 
-Media_Notas()
+    if num_um > num_dois:
+        print("Número 1 é maior: {}".format(num_um))
+    else:
+        print("Número 2 é maior: {}".format(num_dois))
+
+
+Maior_Numero()
