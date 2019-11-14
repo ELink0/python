@@ -242,10 +242,18 @@ class os_t:
 			self.panic("impossible to terminate a task that is currently running")
 		if task == self.idle_task:
 			self.panic("impossible to terminate idle task")
-		if task is not self.the_task:
-			self.panic("task being terminated should be the_task")
 		
-		self.the_task = None
+		
+		for i in range(0,len(self.fake_page)):
+			if self.fake_page[i] == task.tid:
+				self.fake_page[i] = None
+
+		self.tasks.remove(task)
+		if self.current_task == None:
+			if len(self.tasks) == 1:
+				self.sched(self.idle_task)
+			else:
+				self.scheduler()
 		self.printk("task "+task.bin_name+" terminated")
 
 	def un_sched (self, task):
@@ -288,9 +296,10 @@ class os_t:
 		
 	def scheduler (self):
 		
-		if len(self.tasks) <= 1:
-			self.printk("saiu do scheduler: lista <= 2")
- 			return 
+		if len(self.tasks) <= 2:
+			if self.current_task != self.idle_task or len(self.tasks) == 1:
+				self.printk("saiu do scheduler: lista <= 2")
+	 			return 
  			
 	 	index = self.tasks.index(self.current_task)
  		
@@ -298,7 +307,7 @@ class os_t:
  		
 			new_index = random.randint(0, (len(self.tasks)-1))
 
-			if (self.tasks[new_index] != self.idle_task and index != new_index) or (len(self.tasks) == 2):
+			if (self.tasks[new_index] != self.idle_task and index != new_index):
 				break
 		self.un_sched(self.current_task)
 		self.sched(self.tasks[new_index])
