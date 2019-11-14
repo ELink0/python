@@ -2,8 +2,10 @@ import os
 import curses
 import pycfg
 import math
+import random
 from pyarch import load_binary_into_memory
 from pyarch import cpu_t
+
 
 PYOS_TASK_STATE_READY                       = 0
 PYOS_TASK_STATE_EXECUTING                   = 1
@@ -19,6 +21,7 @@ class task_t:
 		self.bin_size = 0
 		self.tid = 0
 		self.state = PYOS_TASK_STATE_READY
+		
 
 class os_t:
 	def __init__ (self, cpu, memory, terminal):
@@ -44,6 +47,7 @@ class os_t:
 		self.next_sched_task = 0
 		self.idle_task = None
 		self.idle_task = self.load_task("idle.bin")
+		self.tasks.append(self.idle_task)
 
 		if self.idle_task is None:
 			self.panic("could not load idle.bin task")
@@ -84,7 +88,6 @@ class os_t:
 		task.tid = self.next_task_id
 		self.next_task_id = self.next_task_id + 1
 
-		#self.tasks.append( task )
 		return task
 
 	def read_binary_to_memory (self, paddr_offset, paddr_max, bin_name):
@@ -143,7 +146,7 @@ class os_t:
 
 
 		self.current_task = task
-		self.printk("scheduling task "+task.bin_name)
+		self.printk("scheduling task "+task.bin_name+" "+str(task.tid) )
 
 	def get_task_amount_of_memory (self, task):
 		return task.paddr_max - task.paddr_offset + 1
@@ -161,6 +164,7 @@ class os_t:
 		paddr_offset = None
 		paddr_max = None
 		cont = 0
+		indice = 0
 		self.printk("pages "+str(len(self.fake_page)))
 		self.printk("blocos "+str(blocos))
 		for i in range(0,len(self.fake_page)):
@@ -170,10 +174,14 @@ class os_t:
 					
 					paddr_offset = i*self.page_size
 					self.printk("po "+str(paddr_offset))
+					indice = i
 					cont= cont + 1
 				if cont == blocos:
 					paddr_max = ((i+1)*self.page_size)-1
 					self.printk("pm "+str(paddr_max))
+					self.fake_page[i] = task.tid
+					
+					
 					break
 			else:
 				cont = 0
@@ -258,7 +266,7 @@ class os_t:
 		task.state = PYOS_TASK_STATE_READY
 		
 		self.current_task = None
-		self.printk("unscheduling task "+task.bin_name)
+		self.printk("unscheduling task "+task.bin_name+" "+str(task.tid) )
 
 	def virtual_to_physical_addr (self, task, vaddr):
 		return task.paddr_offset + vaddr
@@ -278,13 +286,27 @@ class os_t:
 		self.sched(self.idle_task)
 		
 		
-	def escalonador (self):
+	def scheduler (self):
 		
+		if len(self.tasks) <= 1:
+			self.printk("saiu do scheduler: lista <= 2")
+ 			return 
+ 			
+	 	index = self.tasks.index(self.current_task)
+ 		
+ 		while True:
+ 		
+			new_index = random.randint(0, (len(self.tasks)-1))
+
+			if (self.tasks[new_index] != self.idle_task and index != new_index) or (len(self.tasks) == 2):
+				break
+		self.un_sched(self.current_task)
+		self.sched(self.tasks[new_index])
 		
 		
 
 	def interrupt_timer (self):
-		escalonador()
+		self.scheduler()
 		#self.printk("timer interrupt NOT IMPLEMENTED")
 
 	def handle_interrupt (self, interrupt):
