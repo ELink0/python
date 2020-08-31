@@ -21,7 +21,7 @@ def transversionador(top, retorno):
                 iv = os.urandom(16)
                 modo = AES.MODE_CBC
                 en_AES = AES.new(chave, modo, IV=iv)
-                bs = AES.tamanho_un
+                bs = AES.SIZE_UN
 
                 f = open(caminho, 'r')
                 unidade = f.read(1024*bs)
